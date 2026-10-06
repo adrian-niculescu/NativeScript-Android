@@ -617,6 +617,14 @@ void WorkerWrapper::BackgroundLooper(std::shared_ptr<WorkerWrapper> self) {
 
     isTerminating_ = true;
 
+    // A bootstrap that failed in Java after the native runtime was built (an
+    // exception from internal/ts_helpers.js, for one) never handed it back:
+    // initWorkerRuntime threw before returning its id. It is still this
+    // thread's current runtime, so it is torn down below like any other.
+    if (runtime_ == nullptr) {
+        runtime_ = Runtime::GetCurrentRuntime();
+    }
+
     // Terminate any workers this worker created (nested workers). Their
     // Worker object persistents live in this isolate, so they must be
     // released before the isolate is disposed below. Each child cascades to
