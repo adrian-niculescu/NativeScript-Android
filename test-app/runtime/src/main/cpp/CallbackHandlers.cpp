@@ -772,8 +772,15 @@ void CallbackHandlers::RunMainThreadEntry(uint64_t key) {
 
     if (tc.HasCaught() &&
         !NativeScriptException::ContainUncaughtCallbackException(isolate, tc)) {
+        NativeScriptException ex(tc);
+        if (!runtime->IsMainThread()) {
+            // Reported only after this function lets go of the isolate, which
+            // its worker may dispose by then, and from the main thread, which
+            // never enters it: only the message and stack can travel.
+            ex.ReleaseJsHandle();
+        }
         // surfaces via the event loop's guard as a pending Java exception
-        throw NativeScriptException(tc);
+        throw ex;
     }
 }
 
